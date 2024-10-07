@@ -54,3 +54,5 @@ dkms.conf
 .DS_Store
 .vscode-ctags
 !fw_jump.elf
+.vscode/
+.idea/

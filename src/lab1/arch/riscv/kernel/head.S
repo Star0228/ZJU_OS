@@ -1,16 +1,30 @@
-    .extern start_kernel
-    .section .text.entry
-    .globl _start
+    .extern start_kernel 
+    .extern _traps
+    .extern sbi_set_timer
+    .section .text.init
+    .globl _start 
 _start:
-    #error Unimplemented
-    # ------------------
-    # - your code here -
-    # ------------------
+    la sp, boot_stack_top
+
+    la t0, _traps
+    csrw stvec, t0
+
+    li t0, 0x20           
+    csrs sie, t0           
+
+    rdtime t0
+    li t1, 10000000
+    add a0, t0, t1
+    call sbi_set_timer
+
+    li t0, 0x2
+    csrs sstatus, t0
+
+    call start_kernel
 
     .section .bss.stack
     .globl boot_stack
 boot_stack:
-    .space XYZ # <-- change to your stack size
-
+    .space 4096
     .globl boot_stack_top
 boot_stack_top:

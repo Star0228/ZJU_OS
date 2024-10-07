@@ -5,9 +5,9 @@
 
 #define csr_read(csr)                   \
   ({                                    \
-    uint64_t __v;                       \
-    _Static_assert(0, "Unimplemented"); \
-    __v;                                \
+    uint64_t __v ;                       \
+    asm volatile("csrr %0, " #csr : "=r"(__v) : : "memory"); \
+    __v;\
   })
 
 #define csr_write(csr, val)                                    \

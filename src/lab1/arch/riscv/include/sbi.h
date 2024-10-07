@@ -22,4 +22,11 @@ struct sbiret sbi_debug_console_write_byte(uint8_t byte);
 #define SBI_SRST_RESET_REASON_SYSTEM_FAILURE 1
 struct sbiret sbi_system_reset(uint32_t reset_type, uint32_t reset_reason);
 
+struct sbiret sbi_debug_console_write(unsigned long num_bytes,
+    unsigned long base_addr_lo,unsigned long base_addr_hi);
+
+struct sbiret sbi_debug_console_read(unsigned long num_bytes,
+    unsigned long base_addr_lo,unsigned long base_addr_hi);
+
+
 #endif

@@ -12,4 +12,5 @@ void srand(unsigned s) {
 int rand(void) {
     seed = 6364136223846793005ULL * seed + 1;
     return seed >> 33;
+    //lab1
 }
