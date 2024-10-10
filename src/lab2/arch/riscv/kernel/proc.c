@@ -5,6 +5,8 @@
 #include "printk.h"
 
 extern void __dummy();
+extern void __switch_to(struct task_struct *prev, struct task_struct *next);
+
 
 struct task_struct *idle;           // idle process
 struct task_struct *current;        // 指向当前运行线程的 task_struct
@@ -13,25 +15,66 @@ struct task_struct *task[NR_TASKS]; // 线程数组，所有的线程都保存�
 void task_init() {
     srand(2024);
 
-    // 1. 调用 kalloc() 为 idle 分配一个物理页
-    // 2. 设置 state 为 TASK_RUNNING;
-    // 3. 由于 idle 不参与调度，可以将其 counter / priority 设置为 0
-    // 4. 设置 idle 的 pid 为 0
-    // 5. 将 current 和 task[0] 指向 idle
+    idle = (struct task_struct*)kalloc();
+    idle->state = TASK_RUNNING;
+    idle->counter = idle->priority = idle->pid = 0;
+    current = task[0] = idle;
 
-    /* YOUR CODE HERE */
-
-    // 1. 参考 idle 的设置，为 task[1] ~ task[NR_TASKS - 1] 进行初始化
-    // 2. 其中每个线程的 state 为 TASK_RUNNING, 此外，counter 和 priority 进行如下赋值：
-    //     - counter  = 0;
-    //     - priority = rand() 产生的随机数（控制范围在 [PRIORITY_MIN, PRIORITY_MAX] 之间）
-    // 3. 为 task[1] ~ task[NR_TASKS - 1] 设置 thread_struct 中的 ra 和 sp
-    //     - ra 设置为 __dummy（见 4.2.2）的地址
-    //     - sp 设置为该线程申请的物理页的高地址
-
-    /* YOUR CODE HERE */
+    for(int i = 1; i < NR_TASKS; i++) {
+        task[i] = (struct task_struct*)kalloc();
+        task[i]->state = TASK_RUNNING;
+        task[i]->pid = i;
+        task[i]->counter = 0;
+        task[i]->priority = PRIORITY_MIN + rand() % (PRIORITY_MAX - PRIORITY_MIN + 1);
+        task[i]->thread.ra = (uint64_t)&__dummy;
+        task[i]->thread.sp = (uint64_t)task[i] + PGSIZE;
+    }
 
     printk("...task_init done!\n");
+}
+
+void switch_to(struct task_struct *next) {
+    if(current->pid != next->pid) {
+        printk("switch to [PID = %d PRIORITY = %d COUNTER = %d]\n", next->pid, next->priority, next->counter);
+        struct task_struct *prev = current;
+        current = next;
+        __switch_to(prev, next);
+    }
+}
+
+void do_timer() {
+    if(current->pid == idle->pid || current->counter == 0) {
+        schedule();
+        return;
+    } else {
+        current->counter--;
+    }
+    if(current->counter <= 0) {
+        schedule();
+    }
+}
+
+void schedule() {
+    while(1){
+        uint64_t max = 0;
+        struct task_struct* max_task = NULL;
+        for(int i = 0; i < NR_TASKS; i++) {
+            if(task[i]->counter > max) {
+                max = task[i]->counter;
+                max_task = task[i];
+            }
+        }
+        if(max == 0){
+            for(int i = 1; i < NR_TASKS; i++) {
+                task[i]->counter = task[i]->priority;
+                printk("SET [PID = %d PRIORITY = %d COUNTER = %d]\n", task[i]->pid, task[i]->priority, task[i]->counter);
+            }
+            continue;
+        } else {
+            switch_to(max_task);
+            return;
+        }
+    }
 }
 
 #if TEST_SCHED
