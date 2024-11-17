@@ -8,6 +8,8 @@
 _start:
     la sp, boot_stack_top
 
+    call mm_init
+    call task_init
     la t0, _traps
     csrw stvec, t0
     li t0, 0x20           
@@ -19,8 +21,6 @@ _start:
     li t0, 0x2
     csrs sstatus, t0
 
-    call mm_init
-    call task_init
     call start_kernel
 
     .section .bss.stack
