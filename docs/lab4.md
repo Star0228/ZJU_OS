@@ -200,14 +200,16 @@ for GNU/Linux 3.2.0, not stripped
 
 * 对于每个进程，初始化我们刚刚在 `thread_struct` 中添加的三个变量，具体而言：
     * 将 `sepc` 设置为 `USER_START`
-    * 配置 `sstatus` 中的 `SPP`（使得 sret 返回至 U-Mode）、`SPIE`（sret 之后开启中断）、`SUM`（S-Mode 可以访问 User 页面）
+    * 配置 `sstatus` 中的 `SPP`（使得 sret 返回至 U-Mode）、`SUM`（S-Mode 可以访问 User 页面）
     * 将 `sscratch` 设置为 U-Mode 的 sp，其值为 `USER_END` （将用户态栈放置在 user space 的最后一个页面）
 * 对于每个进程，创建属于它自己的页表：
     * 为了避免 U-Mode 和 S-Mode 切换的时候切换页表，我们将内核页表 `swapper_pg_dir` 复制到每个进程的页表中
-    * 将 `uapp` 所在的页面映射到每个进程的页表中
-    
+    * 对于每个进程，分配一块新的内存地址，将 `uapp` 二进制文件内容**拷贝**过去，之后再将其所在的页面映射到对应进程的页表中
+
     !!! tip
-        注意，在程序运行过程中，有部分数据不在栈上，而在初始化的过程中就已经被分配了空间（比如我们的 `uapp` 中的全局变量 `counter`）。所以，二进制文件需要先被**拷贝**到一块新的、供某个进程专用的内存之后再进行映射，来防止所有的进程共享数据，造成预期外的进程间相互影响。
+        在程序运行过程中，有部分数据不在栈上，而在初始化的过程中就已经被分配了空间（比如我们的 `uapp` 中的全局变量 `counter`）。所以，二进制文件需要先被拷贝到一块新的、供某个进程专用的内存之后再进行映射，来防止所有的进程共享数据，造成预期外的进程间相互影响。
+
+        那么应该如何进行拷贝呢？很简单，先计算所需的页数（`uapp` 的大小除以 PGSIZE 后**向上取整**），调用 `alloc_pages()` 函数，再将 `uapp` memcpy 过去。
 
 * 设置用户态栈，对每个用户态进程，其拥有两个栈：
     - 用户态栈：我们可以申请一个空的页面来作为用户态栈，并映射到进程的页表中
@@ -240,6 +242,11 @@ for GNU/Linux 3.2.0, not stripped
 ### 修改 `__switch_to`
 
 在前面新增了 sepc、sstatus、sscratch 之后，需要将这些变量在切换进程时保存在栈上，因此需要更新 `__switch_to` 中的逻辑，同时需要增加切换页表的逻辑。在切换了页表之后，需要通过 `sfence.vma` 来刷新 TLB 和 ICache。
+
+!!! tip "关于切换页表"
+    切换页表的逻辑分为两步，一个是写 `satp`，一个是刷新 TLB，我们用 `task_struct` 上的 `pgd` 保存了下一个用户进程的页表的虚拟地址，需要通过一些变换得到 PPN，加上 MODE 写入 `satp`。
+
+    可以参考 [lab3 中 satp 寄存器](https://zju-sec.github.io/os24fall-stu/lab3/#satp)部分。
 
 ### 更新中断处理逻辑
 
@@ -319,6 +326,13 @@ void trap_handler(uint64_t scause, uint64_t sepc, struct pt_regs *regs) {
 * 在之前的 lab 中，在 OS boot 之后，我们需要等待一个时间片，才会进行调度，我们现在更改为 OS boot 完成之后立即调度 uapp 运行
     * 即在 `start_kernel()` 中，`test()` 之前调用 `schedule()`
 * 将 `head.S` 中设置 sstatus.SIE 的逻辑注释掉，确保 schedule 过程不受中断影响
+
+!!! note "关于 SIE 与 SPIE"
+    这里保持 sstatus.SIE 为 0 可以在 S 态禁用中断来防止被时钟中断打断。曾经我们让大家在用户态进程初始化的时候设置 sstatus.SPIE 使得进入用户态进程后 sstatus.SIE 自动被置为 sstatus.SPIE 的值（即 1），这样在用户态进程中可以接收到时钟中断。但是 [RISC-V Privileged Spec](https://github.com/riscv/riscv-isa-manual/releases/download/20240411/priv-isa-asciidoc.pdf) 第 3.1.6.1 节写道：
+
+    > When a hart is executing in privilege mode *x*, interrupts are globally enabled when *x*IE=1 and globally disabled when *x*IE=0. ... Interrupts for higher-privilege modes, *y*>*x*, are always globally enabled regardless of the setting of the global *y*IE bit for the higher-privilege mode.
+
+    也就是说 CPU 在用户态 *x*=U 运行的时候，不论高特权级（*y*=S）的 SIE 位是否为 1，都会全局开启高特权级的中断。所以在用户态不管 sstatus.SIE 如何设置，都会始终接收到 S 态的时钟中断，因此之前对于 sstatus.SPIE 的设置并无必要。
 
 ### 测试纯二进制文件
 
