@@ -150,7 +150,7 @@ label1:
 
     ld t0,0(sp)
     addi sp,sp,8
-    csrw scause,t0
+    csrw sstatus,t0
 
     ld t0,0(sp)
     addi sp,sp,8
