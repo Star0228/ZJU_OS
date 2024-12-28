@@ -1,0 +1,48 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "kernel-debug",
+      "type": "cppdbg",
+      "request": "launch",
+      "miDebuggerServerAddress": "localhost:1234",
+      "program": "${workspaceFolder}/src/lab2/vmlinux",
+      "args": [],
+      "stopAtEntry": true,
+      "externalConsole": false,
+      "cwd": "/mnt/d/CS/os24fall-stu/",
+      "environment": [],
+      "logging": {
+        "engineLogging": false
+      },
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "miDebuggerPath": "/usr/bin/gdb-multiarch"
+    },
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": [],
+      "stopAtEntry": false,
+      "externalConsole": true,
+      "cwd": "d:/CS/os24fall-stu/src/lab2/arch/riscv/kernel",
+      "program": "d:/CS/os24fall-stu/src/lab2/arch/riscv/kernel/build/Debug/outDebug",
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    }
+  ]
+}
