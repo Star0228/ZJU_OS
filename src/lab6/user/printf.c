@@ -298,7 +298,8 @@ int printf(const char* s, ...) {
                   "ecall\n"
                   "mv %0, a0\n"
                   : "+r" (syscall_ret)
-                  : "i" (SYS_WRITE), "r" (fd), "r" (&buffer), "r" (tail));
+                  : "i" (SYS_WRITE), "r" (fd), "r" (&buffer), "r" (tail)
+                  : "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7");
     tail = 0;
     va_end(vl);
     return res;

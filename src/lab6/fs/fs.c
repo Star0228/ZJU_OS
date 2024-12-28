@@ -7,7 +7,32 @@
 
 struct files_struct *file_init() {
     // todo: alloc pages for files_struct, and initialize stdin, stdout, stderr
-    struct files_struct *ret = NULL;
+    struct files_struct *ret = (struct files_struct *)alloc_pages(PGROUNDUP(sizeof(struct files_struct)));
+    memset(ret,0,sizeof(PGROUNDUP((sizeof(struct files_struct)))));
+    ret->fd_array[0].opened = 1;
+    ret->fd_array[0].perms = FILE_READABLE;
+    ret->fd_array[0].cfo = 0;
+    ret->fd_array[0].lseek = NULL;
+    ret->fd_array[0].write = NULL;
+    ret->fd_array[0].read = (int64_t*)stdin_read;
+    memcpy(ret->fd_array[0].path,"stdin",6);
+
+    ret->fd_array[1].opened = 1;
+    ret->fd_array[1].perms = FILE_WRITABLE;
+    ret->fd_array[1].cfo = 0;
+    ret->fd_array[1].lseek = NULL;
+    ret->fd_array[1].write = (int64_t*)stdout_write;
+    ret->fd_array[1].read = NULL;
+    memcpy(ret->fd_array[1].path,"stdout",7);
+
+
+    ret->fd_array[2].opened = 1;
+    ret->fd_array[2].perms = FILE_WRITABLE;
+    ret->fd_array[2].cfo = 0;
+    ret->fd_array[2].lseek = NULL;
+    ret->fd_array[2].write = (int64_t*)stderr_write;
+    ret->fd_array[2].read = NULL;
+    memcpy(ret->fd_array[2].path,"stderr",7);
     return ret;
 }
 

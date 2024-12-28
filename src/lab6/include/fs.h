@@ -2,6 +2,9 @@
 #define __FS_H__
 
 #include "defs.h"
+#include "../user/stdio.h"
+#include "string.h"
+// #include <string.h>
 
 #define MAX_PATH_LENGTH 80
 #define MAX_FILE_NUMBER 16
@@ -29,20 +32,20 @@ struct fat32_file {
 };
 
 struct file {   // Opened file in a thread.
-    uint32_t opened;
-    uint32_t perms;
-    int64_t cfo;
-    uint32_t fs_type;
+    uint32_t opened;    // 文件是否打开
+    uint32_t perms;     // 文件的读写权限
+    int64_t cfo;        // 当前文件指针偏移量
+    uint32_t fs_type;   // 文件系统类型
 
     union {
-        struct fat32_file fat32_file;
+        struct fat32_file fat32_file;   // 后续 FAT32 文件系统的文件需要的额外信息
     };
 
-    int64_t (*lseek) (struct file *file, int64_t offset, uint64_t whence);
-    int64_t (*write) (struct file *file, const void *buf, uint64_t len);
-    int64_t (*read)  (struct file *file, void *buf, uint64_t len);
+    int64_t (*lseek) (struct file *file, int64_t offset, uint64_t whence);  // 文件指针操作
+    int64_t (*write) (struct file *file, const void *buf, uint64_t len);    // 写文件
+    int64_t (*read)  (struct file *file, void *buf, uint64_t len);          // 读文件
 
-    char path[MAX_PATH_LENGTH];
+    char path[MAX_PATH_LENGTH]; // 文件路径
 };
 
 struct files_struct {
